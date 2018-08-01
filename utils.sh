@@ -37,27 +37,46 @@ EOF
 }
 
 get_ncp_process_id() {
-  uuid=$1
+  clustername=${1}
+  uuid=$(get_uuid ${clustername})
   target=$2
   bosh -d service-instance_${uuid} ssh ${target} 'ps -ef  | grep ncp' | awk '/start_ncp/{print $5}'
 }
 
 kill_ncp_process() {
-  uuid=$1
+  clustername=${1}
+  uuid=$(get_uuid ${clustername})
   target=$2
   id=$(get_ncp_process_id ${uuid} ${target})
   kill_procee_by_id_on_machine "${id}"
 }
 
 kill_procee_by_id_on_machine() {
-  uuid=$1
+  clustername=${1}
+  uuid=$(get_uuid ${clustername})
   target=$2
   id=$3
   bosh -d service-instance_${uuid} ssh ${target} "sudo su -c \"pkill -P ${id}\""
 }
 
 check_ncp_master_status() {
-  uuid=$1
+  clustername=${1}
+  uuid=$(get_uuid ${clustername})
   target=$2
   bosh -d service-instance_${uuid} ssh ${target} "sudo su -c '/var/vcap/jobs/ncp/bin/nsxcli -c get ncp-master status'"
+}
+
+list_machines() {
+  clustername=${1}
+  uuid=$(get_uuid ${clustername})
+  bosh -d service-instance_${uuid} vms |awk '/vm-/{print $1}'
+}
+
+find_ncp_master_machine() {
+  clustername=${1}
+  for m in $(list_machines ${clustername} | grep 'master'); do
+    if check_ncp_master_status ${clustername} ${m} | grep 'This instance is the NCP master' 2>&1 >/dev/null; then
+      echo ${m}
+    fi
+  done
 }
