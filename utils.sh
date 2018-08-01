@@ -1,9 +1,14 @@
 #!/bin/bash
 
 # On jumphost
+get_uuid() {
+  clustername=${1}
+  pks cluster ${clustername} | awk '/UUID/{print $2}'
+}
+
 delete_nat_rule() {
   clustername=${1}
-  uuid=$(pks cluster ${clustername} | awk '/UUID/{print $2}')
+  uuid=$(get_uuid ${clustername})
   pushd /home/kubo 2>&1 >/dev/null
     source gw_scripts/nsx_env.sh
     source nsx-helper-pkg/utils.sh
@@ -29,4 +34,30 @@ replace_release_version() {
 EOF
   bosh int -o ops.yml ${deployment}.manifest > ${deployment}.newm
   bosh -d ${deployment} deploy ${deployment}.newm
+}
+
+get_ncp_process_id() {
+  uuid=$1
+  target=$2
+  bosh -d service-instance_${uuid} ssh ${target} 'ps -ef  | grep ncp' | awk '/start_ncp/{print $5}'
+}
+
+kill_ncp_process() {
+  uuid=$1
+  target=$2
+  id=$(get_ncp_process_id ${uuid} ${target})
+  kill_procee_by_id_on_machine "${id}"
+}
+
+kill_procee_by_id_on_machine() {
+  uuid=$1
+  target=$2
+  id=$3
+  bosh -d service-instance_${uuid} ssh ${target} "sudo su -c \"pkill -P ${id}\""
+}
+
+check_ncp_master_status() {
+  uuid=$1
+  target=$2
+  bosh -d service-instance_${uuid} ssh ${target} "sudo su -c '/var/vcap/jobs/ncp/bin/nsxcli -c get ncp-master status'"
 }
