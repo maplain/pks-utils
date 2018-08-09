@@ -80,3 +80,16 @@ find_ncp_master_machine() {
     fi
   done
 }
+
+check_vmk50() {
+  host_paths=$(govc ls /kubo-dc/host/* | grep -v Resources)
+  readarray -t hosts <<<"$host_paths"
+  for host in "${hosts[@]}"
+  do
+    host_ip=$(echo $host| rev | cut -d'/' -f 1 | rev)
+    echo "$host_ip"
+
+    sshpass -p 'Ponies!23' ssh -o StrictHostKeyChecking=no root@$host_ip "esxcfg-vmknic -l | grep vmk50"
+    echo "###"
+  done
+}
