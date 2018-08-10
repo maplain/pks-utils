@@ -3,12 +3,12 @@
 # On jumphost
 # these functions are tightly coupled with jumphost environment
 get_uuid() {
-  clustername=${1}
+  clustername=${1:?}
   pks cluster ${clustername} | awk '/UUID/{print $2}'
 }
 
 delete_nat_rule() {
-  clustername=${1}
+  clustername=${1:?}
   uuid=$(get_uuid ${clustername})
   pushd /home/kubo 2>&1 >/dev/null
     source gw_scripts/nsx_env.sh
@@ -21,8 +21,8 @@ delete_nat_rule() {
 }
 
 replace_release_version() {
-  release=${1}
-  value=${2}
+  release=${1:?}
+  value=${2:?}
   deployment=$(bosh deployments | awk '{print $1}' | grep pivotal-container-service)
   bosh -d ${deployment} manifest > ${deployment}.manifest
   cat > ops.yml <<EOF
@@ -37,17 +37,21 @@ EOF
   bosh -d ${deployment} deploy ${deployment}.newm
 }
 
+print_help() {
+  type $1
+}
+
 get_ncp_process_id() {
-  clustername=${1}
+  clustername=${1:?}
   uuid=$(get_uuid ${clustername})
-  target=$2
+  target=${2:?}
   bosh -d service-instance_${uuid} ssh ${target} 'ps -ef  | grep ncp' | awk '/start_ncp/{print $5}'
 }
 
 kill_ncp_process() {
-  clustername=${1}
+  clustername=${1:?}
   uuid=$(get_uuid ${clustername})
-  target=$2
+  target=${2:?}
   id=$(get_ncp_process_id ${uuid} ${target})
   kill_procee_by_id_on_machine "${id}"
 }
@@ -186,3 +190,7 @@ list_pks_utils() {
   echo "list_pks_utils"
 }
 
+pks_utils_help() {
+  func=${1:?pks_utils_help [funcname]}
+  type ${func}
+}
