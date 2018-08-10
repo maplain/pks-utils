@@ -164,3 +164,25 @@ add_dns() {
   echo "${1}  ${2}" | sudo tee -a /etc/hosts > /dev/null
 }
 
+list_pks_utils() {
+  echo "get_uuid"
+  echo "delete_nat_rule"
+  echo "replace_release_version"
+  echo "get_ncp_process_id"
+  echo "kill_ncp_process"
+  echo "kill_procee_by_id_on_machine"
+  echo "check_ncp_master_status"
+  echo "list_machines"
+  echo "find_ncp_master_machine"
+  echo "check_vmk50"
+  echo "get_pks_guid"
+  echo "get_pks_info"
+  echo "pks_login"
+  echo "pks_setup_login"
+  echo "list_product_properties"
+  echo "list_pks_properties"
+  echo "get_pks_property_value"
+  echo "add_dns"
+  echo "list_pks_utils"
+}
+
