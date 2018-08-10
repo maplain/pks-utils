@@ -107,7 +107,7 @@ get_pks_info() {
   export PKS_IP=$(${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/status" | jq -cr '.status[].ips[0]')
   echo "PKS IP: ${PKS_IP}"
   echo "get pks certificate"
-  ${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt}
+  ${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt
 }
 
 pks_login() {
