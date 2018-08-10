@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # On jumphost
+# these functions are tightly coupled with jumphost environment
 get_uuid() {
   clustername=${1}
   pks cluster ${clustername} | awk '/UUID/{print $2}'
@@ -93,3 +94,73 @@ check_vmk50() {
     echo "###"
   done
 }
+
+get_pks_guid() {
+  # TODO: $PKS_TILE_NAME is hardcoded here
+  guid=$(${omcli} curl -s -p '/api/v0/staged/products' | jq  -cr '.[] | select( .type=="pivotal-container-service" ) | .guid')
+  echo $guid
+}
+
+get_pks_info() {
+  export PKS_GUID="$(get_pks_guid)"
+  echo "PKS GUID: ${PKS_GUID}"
+  export PKS_IP=$(${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/status" | jq -cr '.status[].ips[0]')
+  echo "PKS IP: ${PKS_IP}"
+  echo "get pks certificate"
+  ${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt}
+}
+
+pks_login() {
+  uaa_hostname=$(get_pks_property_value pks_api_hostname)
+  username=${PKS_USERNAME:-alana} # use PKS_USERNAME here
+  password=${PKS_PASSWORD:-password} # use PKS_PASSWORD here
+  pks login -a ${uaa_hostname} -u ${username} -p ${password} -k
+}
+
+pks_setup_login() {
+  echo "set target"
+  uaa_hostname=$(get_pks_property_value pks_api_hostname)
+  add_dns "30.0.0.12" ${uaa_hostname}
+  uaac target https://${uaa_hostname}:8443 --skip-ssl-validation
+
+  echo "Fetching uaa admin secret"
+  guid=$(get_pks_guid)
+  secret=$(${omcli} curl -s --path "/api/v0/deployed/products/${guid}/credentials/.properties.pks_uaa_management_admin_client"  | jq -c -r '.credential.value.secret')
+
+  echo "uaac login"
+  uaac token client get admin -s ${secret}
+
+  username=${PKS_USERNAME:-alana} # use PKS_USERNAME here
+  password=${PKS_PASSWORD:-password} # use PKS_PASSWORD here
+  echo "uaac create user ${username}"
+  uaac user add ${username} --given_name ${username} --family_name pks --emails ${username}@pks.com -p ${password}
+  echo "uaac add user ${username} to pks.clusters.admin"
+  uaac member add pks.clusters.admin ${username}
+
+  echo "get pks certificate"
+  ${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt
+
+  echo "pks login"
+  pks login -a ${uaa_hostname} -u ${username} -p ${password} --ca-cert /home/kubo/pks.crt
+}
+
+list_product_properties() {
+  guid=$1
+  ${omcli} curl -s -p "/api/v0/staged/products/${guid}/properties" | jq -cr '.properties | keys[]' | sed 's/.properties.//g'
+}
+
+list_pks_properties() {
+  guid=$(get_pks_guid)
+  ${omcli} curl -s -p "/api/v0/staged/products/${guid}/properties" | jq -cr '.properties | keys[]' | sed 's/.properties.//g'
+}
+
+get_pks_property_value() {
+  guid=$(get_pks_guid)
+  key=$1
+  ${omcli} curl -s -p "/api/v0/staged/products/${guid}/properties" | jq -cr ".properties[\".properties.${key}\"].value"
+}
+
+add_dns() {
+  echo "${1}  ${2}" | sudo tee -a /etc/hosts > /dev/null
+}
+
