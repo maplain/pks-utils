@@ -142,7 +142,7 @@ pks_setup_login() {
   uaac member add pks.clusters.admin ${username}
 
   echo "get pks certificate"
-  ${omcli} curl -s -p "/api/v0/deployed/products/${PKS_GUID}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt
+  ${omcli} curl -s -p "/api/v0/deployed/products/${guid}/credentials/.pivotal-container-service.pks_tls" | jq -c -r .credential.value.cert_pem > /home/kubo/pks.crt
 
   echo "pks login"
   pks login -a ${uaa_hostname} -u ${username} -p ${password} --ca-cert /home/kubo/pks.crt

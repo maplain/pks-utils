@@ -15,7 +15,7 @@ gen_key_for_jumphost() {
   echo alias goto-${target}=\'ssh -i ~/.ssh/${target} kubo@${ip}\' >> ~/.zshrc
 }
 
-get_key() {
+testbed_get_key() {
   key=$1
   file=$2
   bosh int --path=/$1 $2
@@ -27,4 +27,21 @@ get_proxy() {
 
 get_nsxt_manager() {
   testbed_get_key 'nsx_manager/hostname' $1
+}
+
+list_nimbus_testbeds() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --lease 7 --testbed list | awk '/sc-prd-vc/{print}'" | awk -F ',' '{print $1}'
+}
+
+extend_lease_testbed() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --lease 7 --testbed extend-lease $1"
+}
+
+list_local_pks_utils() {
+  echo "gen_key_for_jumphost"
+  echo "get_key"
+  echo "get_proxy"
+  echo "get_nsxt_manager"
+  echo "list_nimbus_testbeds"
+  echo "extend_lease_testbed"
 }
