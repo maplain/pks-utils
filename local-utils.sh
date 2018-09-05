@@ -50,8 +50,12 @@ list_local_pks_utils() {
 view_pipeline() {
   target=${1}
   pp=${2}
-  if [[ "$target" == "" || "$pp" == "" ]]; then
+  if [[ "$target" == "" ]]; then
     echo "view_pipeline [concourse target name] [concourse pipeline name]"
+    return
   fi
-  open "$(fly targets | grep ${target} | awk '{print $2}')/teams/$(fly targets | grep ${target} | awk '{print $3}')/pipelines/${pp}"
+  if [[ "$pp" == "" ]]; then
+    echo "warning: pipeline name not specified. will view all pipelines by default"
+  fi
+  open "$(fly targets | awk -v t=$target '{if ($1 == t) print $2}')/teams/$(fly targets | awk -v t=$target '{if ($1 == t) print $3}')/pipelines/${pp}"
 }
