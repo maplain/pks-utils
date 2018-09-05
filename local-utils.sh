@@ -44,4 +44,9 @@ list_local_pks_utils() {
   echo "get_nsxt_manager"
   echo "list_nimbus_testbeds"
   echo "extend_lease_testbed"
+  echo "view_pipeline"
+}
+
+view_pipeline() {
+  open "https://ci.vcna.io/teams/nsxt/pipelines/${1}"
 }

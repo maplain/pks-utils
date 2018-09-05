@@ -188,9 +188,14 @@ list_pks_utils() {
   echo "get_pks_property_value"
   echo "add_dns"
   echo "list_pks_utils"
+  echo "disable_resurrector"
 }
 
 pks_utils_help() {
   func=${1:?pks_utils_help [funcname]}
   type ${func}
+}
+
+disable_resurrector() {
+  ${omcli} configure-director --director-configuration '{"resurrector_enabled": false}'
 }
