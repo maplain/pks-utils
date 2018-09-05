@@ -48,5 +48,10 @@ list_local_pks_utils() {
 }
 
 view_pipeline() {
-  open "https://ci.vcna.io/teams/nsxt/pipelines/${1}"
+  target=${1}
+  pp=${2}
+  if [[ "$target" == "" || "$pp" == "" ]]; then
+    echo "view_pipeline [concourse target name] [concourse pipeline name]"
+  fi
+  open "$(fly targets | grep ${target} | awk '{print $2}')/teams/$(fly targets | grep ${target} | awk '{print $3}')/pipelines/${pp}"
 }
