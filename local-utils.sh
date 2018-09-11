@@ -37,6 +37,18 @@ extend_lease_testbed() {
   ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --lease 7 --testbed extend-lease $1"
 }
 
+kill_testbed() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --testbed kill $1"
+}
+
+gotojumpbox() {
+  if [ -z "$1" ]; then
+    echo "gotojumpbox [jumpbox ip]"
+    return
+  fi
+  sshpass -p 'Ponies!23' ssh kubo@$1
+}
+
 list_local_pks_utils() {
   echo "gen_key_for_jumphost"
   echo "get_key"
@@ -45,6 +57,11 @@ list_local_pks_utils() {
   echo "list_nimbus_testbeds"
   echo "extend_lease_testbed"
   echo "view_pipeline"
+  echo "gotojumpbox"
+  echo "fly_ab_hack_nimbus_validate"
+  echo "fly_ab_latest_build"
+  echo "kill_testbed"
+  echo "view_definitions"
 }
 
 view_pipeline() {
@@ -58,4 +75,28 @@ view_pipeline() {
     echo "warning: pipeline name not specified. will view all pipelines by default"
   fi
   open "$(fly targets | awk -v t=$target '{if ($1 == t) print $2}')/teams/$(fly targets | awk -v t=$target '{if ($1 == t) print $3}')/pipelines/${pp}"
+}
+
+fly_ab_latest_build() {
+  pp=${1}
+  job=${2}
+  sta="$(fly -t npks builds  | grep ${1}/${2} | awk '{print $4}')"
+  if [[ "${sta}" != "succeeded" && "${sta}" != "failed" && "${sta}" != "" ]]; then
+    build="$(fly -t npks builds  | grep ${1}/${2} | awk '{print $3}')"
+    fly -t npks ab -j=${1}/${2} -b="${build}"
+  else
+    echo "current build status: ${sta}"
+  fi
+}
+
+fly_ab_hack_nimbus_validate() {
+  if [ -z "$1" ]; then
+    echo "fly_ab_hack_nimbus_validate [pool name]"
+    return
+  fi
+  fly_ab_latest_build "hack-nimbus" "validate-${1}"
+}
+
+view_definitions() {
+  open "https://github.com/maplain/pks-utils/blob/master/local-utils.sh"
 }
