@@ -22,7 +22,39 @@ testbed_get_key() {
 }
 
 get_proxy() {
-  testbed_get_key 'http_proxy' $1
+  testbed_get_key 'network/http proxy' $1
+}
+
+claim_lock_with_path() {
+  if [ -z "$1" ]; then
+    echo "claim_lock [path to lock]"
+    return
+  fi
+  if [ ! -f $1 ]; then
+    echo "$1 doesn't exist"
+  fi
+  d=$(dirname $1)
+  f=$(basename $1)
+  git mv $1 ${d%%${f}}/../claimed/
+  git commit -am "claim ${f}"
+  git pull origin $(git rev-parse --abbrev-ref HEAD) -r
+  git push origin $(git rev-parse --abbrev-ref HEAD)
+}
+
+release_lock_with_path() {
+  if [ -z "$1" ]; then
+    echo "release_lock [path to lock]"
+    return
+  fi
+  if [ ! -f $1 ]; then
+    echo "$1 doesn't exist"
+  fi
+  d=$(dirname $1)
+  f=$(basename $1)
+  git mv $1 ${d%%${f}}/../unclaimed/
+  git commit -am "release ${f}"
+  git pull origin $(git rev-parse --abbrev-ref HEAD) -r
+  git push origin $(git rev-parse --abbrev-ref HEAD)
 }
 
 get_nsxt_manager() {
