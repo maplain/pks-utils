@@ -61,12 +61,25 @@ get_nsxt_manager() {
   testbed_get_key 'nsx_manager/hostname' $1
 }
 
-list_nimbus_testbeds() {
-  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --lease 7 --testbed list | awk '/sc-prd-vc/{print}'" | awk -F ',' '{print $1}'
+list_all_nimbus_testbeds() {
+	list_nimbus_wdc_testbeds
+	list_nimbus_sc_testbeds
 }
 
-extend_lease_testbed() {
-  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl --lease 7 --testbed extend-lease $1"
+list_nimbus_wdc_testbeds() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl -L wdc --lease 7 --testbed list | awk '/wdc-prd-vc/{print}'" | awk -F ',' '{print $1}'
+}
+
+list_nimbus_sc_testbeds() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl -L sc --lease 7 --testbed list | awk '/sc-prd-vc/{print}'" | awk -F ',' '{print $1}'
+}
+
+extend_sc_testbed() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl -L sc --lease 7 --testbed extend-lease $1"
+}
+
+extend_wdc_testbed() {
+  ssh -i ~/.ssh/easy fangyuanl@pa-dbc1109.eng.vmware.com "/mts/git/bin/nimbus-ctl -L wdc --lease 7 --testbed extend-lease $1"
 }
 
 kill_testbed() {
@@ -78,7 +91,7 @@ gotojumpbox() {
     echo "gotojumpbox [jumpbox ip]"
     return
   fi
-  sshpass -p 'Ponies!23' ssh kubo@$1
+  sshpass -p 'Ponies!23' ssh -o StrictHostKeyChecking=no kubo@$1
 }
 
 list_local_pks_utils() {
@@ -87,7 +100,8 @@ list_local_pks_utils() {
   echo "get_proxy"
   echo "get_nsxt_manager"
   echo "list_nimbus_testbeds"
-  echo "extend_lease_testbed"
+  echo "extend_sc_testbed"
+  echo "extend_wdc_testbed"
   echo "view_pipeline"
   echo "gotojumpbox"
   echo "fly_ab_hack_nimbus_validate"
@@ -132,3 +146,26 @@ fly_ab_hack_nimbus_validate() {
 view_definitions() {
   open "https://github.com/maplain/pks-utils/blob/master/local-utils.sh"
 }
+
+switch_to_releng_gcloud() {
+  gcloud auth activate-service-account --key-file <(ct vars get -k "pks-releng-gcp-json" -v <(ct p v -n nsx-t-secrets))
+}
+
+switch_to_pks_gcloud() {
+  gcloud auth activate-service-account --key-file <(ct vars get -k "gcs-json-key" -v <(ct p v -n common-secrets))
+}
+
+cp_to_my_dbc() {
+	scp $1 fangyuanl@pa-dbc1109.eng.vmware.com:/dbc/pa-dbc1109/fangyuanl/$2
+}
+
+takeshuttle() {
+	sshuttle -r kubo@$1 30.0.0.0/16 192.168.111.0/24 192.168.150.0/24 192.167.0.0/24 \
+      -e "ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=2" \
+      --no-latency-control
+}
+
+docker_cleanup() {
+	for i in $(docker ps -a | awk '{if (NR>1) print $1}'); do docker rm -f $i; done
+}
+

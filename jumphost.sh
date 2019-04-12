@@ -199,3 +199,7 @@ pks_utils_help() {
 disable_resurrector() {
   ${omcli} configure-director --director-configuration '{"resurrector_enabled": false}'
 }
+
+watch_deployment() {
+  bosh -d service-instance_${1} tasks
+}
