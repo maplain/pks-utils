@@ -201,5 +201,6 @@ disable_resurrector() {
 }
 
 watch_deployment() {
-  bosh -d service-instance_${1} tasks
+  source gw_scripts/bosh_env.sh
+  bosh -d service-instance_${1} task
 }

@@ -169,3 +169,6 @@ docker_cleanup() {
 	for i in $(docker ps -a | awk '{if (NR>1) print $1}'); do docker rm -f $i; done
 }
 
+get_pks_utils() {
+	pbcopy < <(echo -ne "source <(curl https://raw.githubusercontent.com/maplain/pks-utils/master/jumphost.sh)")
+}
