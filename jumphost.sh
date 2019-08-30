@@ -213,3 +213,9 @@ install_gsutil_on_ubuntu() {
 }
 
 
+check_ncp_ini_field() {
+	clustername=$1
+	var=$2
+	master=${3:-master}
+	bosh -d service-instance_$(pks cluster ${clustername} --json | jq -cr '.uuid') ssh ${master} "sudo su -c 'cat  /var/vcap/jobs/ncp/config/ncp.ini'" | grep "${var}" 
+}

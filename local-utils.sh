@@ -294,6 +294,10 @@ install_workload() {
 	kubectl run hello --image=k8s.gcr.io/echoserver:1.4 --port=8080
 }
 
+download_govc() {
+	wget 'https://github.com/vmware/govmomi/releases/download/v0.21.0/govc_linux_amd64.gz'
+}
+
 taint_masternode() {
 	kubectl taint nodes --all node-role.kubernetes.io/master-
 }
@@ -308,4 +312,94 @@ add_veth() {
 
 get_k8s_all_crds() {
 	kubectl api-resources --verbs=list -o name | xargs -n 1 kubectl get -o name
+}
+
+install_latest_kubectl() {
+	curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/darwin/amd64/kubectl
+	chmod +x kubectl
+	mv kubectl /usr/local/bin/
+}
+
+install_minikube_on_mac_with_fusion() {
+	brew cask install minikube
+	minikube start --vm-driver=vmwarefusion
+}
+
+download_guest_ova() {
+	wget 'http://sc-prd-cdn-cgw002-vip.eng.vmware.com/build/storage61/release/sb-25786412/publish/lin64/photon-ova-3.0-9e008f5.ova'
+}
+
+install_kustomize() {
+	opsys=$1 # or darwin, or windows
+        curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
+          grep browser_download |\
+          grep $opsys |\
+          cut -d '"' -f 4 |\
+          xargs curl -O -L
+        mv kustomize_*_${opsys}_amd64 kustomize
+        chmod u+x kustomize
+}
+
+install_golang() {
+	wget 'https://dl.google.com/go/go1.12.7.linux-amd64.tar.gz'
+}
+
+generate_ca() {
+	PURPOSE=$1
+        openssl req -x509 -sha256 -new -nodes -days 365 -newkey rsa:2048 -keyout ${PURPOSE}-ca.key -out ${PURPOSE}-ca.crt -subj "/CN=ca"
+	echo '{"signing":{"default":{"expiry":"43800h","usages":["signing","key encipherment","'${PURPOSE}'"]}}}' > "${PURPOSE}-ca-config.json"
+}
+
+generate_cert() {
+	PURPOSE=$1
+	SERVICE_NAME=$2
+        ALT_NAMES=$3
+        echo '{"CN":"'${SERVICE_NAME}'","hosts":['${ALT_NAMES}'],"key":{"algo":"rsa","size":2048}}' | cfssl gencert -ca=${PURPOSE}-ca.crt -ca-key=${PURPOSE}-ca.key -config=${PURPOSE}-ca-config.json - | cfssljson -bare apiserver
+}
+
+install_cfssl() {
+	go get -u github.com/cloudflare/cfssl/cmd/...
+}
+
+install_k8s_on_centos() {
+	setenforce 0
+	sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/sysconfig/selinux
+	swapoff -a
+	echo '1' > /proc/sys/net/bridge/bridge-nf-call-iptables
+	cat >> /etc/yum.repos.d/kubernetes.repo <<EOF
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOF
+       yum install kubeadm docker -y
+       systemctl restart docker && systemctl enable docker
+       systemctl  restart kubelet && systemctl enable kubelet
+       firewall-cmd --permanent --add-port=10250/tcp
+       firewall-cmd --permanent --add-port=10255/tcp
+       firewall-cmd --permanent --add-port=30000-32767/tcp
+       firewall-cmd --permanent --add-port=6783/tcp
+       firewall-cmd --reload
+}
+
+ubuntu_cloud_image_1604() {
+	echo 'https://cloud-images.ubuntu.com/releases/xenial/release/ubuntu-16.04-server-cloudimg-amd64.ova'
+}
+
+install_ovftool() {
+	wget http://build-squid.eng.vmware.com/build/mts/release/bora-13375754/publish/VMware-ovftool-4.3.0-13375754-lin.x86_64.zip
+	unzip VMware-ovftool-4.3.0-13375754-lin.x86_64.zip
+	export PATH=$PATH:$(pwd)/ovftool
+}
+
+download_ncp_image() {
+	wget http://build-squid.eng.vmware.com/build/mts/release/bora-14340900/publish/nsx-container/Kubernetes/nsx-ncp-ubuntu-2.5.0.14340900.tar
+}
+
+get_virtualmachine_ip() {
+	kubectl get virtualmachine ${1} -o json | jq -cr '.status.vmIp'
 }
