@@ -32,12 +32,7 @@ install_dependencies() {
 	mv kustomize /usr/local/bin
 }
 
-master_run() {
-	init_k8s_master
-	install_dependencies
-	# setup auto-completion
-	source <(kubectl completion bash)
-
+install_cloud_provider() {
 	# install cloud provider
 	pushd /usr/lib/vmware-wcpgc-manifests/
 	  tar xzvf guest-cluster-cloud-provider-kustomize.tgz
@@ -45,4 +40,14 @@ master_run() {
 	    bash deploy.sh -e gcova -m svcaccount
 	  popd
 	popd
+}
+
+master_run() {
+	init_k8s_master
+	install_dependencies
+
+	# setup auto-completion
+	source <(kubectl completion bash)
+
+	install_cloud_provider
 }
